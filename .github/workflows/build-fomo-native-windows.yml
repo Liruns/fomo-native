@@ -1,0 +1,64 @@
+name: Build fomo-native Windows
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Windows x64 installer
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version-file: package.json
+          cache: false
+          run-install: false
+
+      - name: Install dependencies
+        run: vp install
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Install Spectre-mitigated MSVC libraries
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installPath = & $vswhere -products * -latest -property installationPath
+          $setupExe = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+          $process = Start-Process -FilePath $setupExe `
+            -ArgumentList "modify", "--installPath", "`"$installPath`"", "--add", `
+            "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre", "--quiet", "--norestart" `
+            -Wait -PassThru -NoNewWindow
+          if ($null -eq $process -or $process.ExitCode -ne 0) {
+            exit $(if ($null -eq $process) { 1 } else { $process.ExitCode })
+          }
+
+      - name: Build installer
+        run: node scripts/build-desktop-artifact.ts --platform win --target nsis --arch x64 --build-version 0.0.1 --output-dir release --verbose
+
+      - name: Create checksum
+        shell: pwsh
+        run: |
+          $asset = Get-Item release/fomo-native-0.0.1-windows-x64.exe
+          $hash = (Get-FileHash $asset.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $($asset.Name)" | Set-Content -Encoding ascii release/SHA256SUMS
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: fomo-native-0.0.1-windows-x64
+          path: |
+            release/fomo-native-0.0.1-windows-x64.exe
+            release/SHA256SUMS
+          if-no-files-found: error
