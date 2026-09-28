@@ -163,7 +163,7 @@ describe("shareDevServer", () => {
             off: { exitCode: 0 },
             serve: {
               exitCode: 1,
-              stderr: "permission denied for tskey-auth-secret-token-value",
+              stderr: "permission denied for mock-auth-token-value",
             },
           }),
         ),

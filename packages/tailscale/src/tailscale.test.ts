@@ -259,7 +259,7 @@ describe("tailscale", () => {
   it.effect("keeps nonzero exit diagnostics structured", () => {
     const layer = mockSpawnerLayer(() => ({
       code: 7,
-      stderr: "not logged in tskey-auth-secret-token-value",
+      stderr: "not logged in mock-auth-token-value",
     }));
 
     return Effect.gen(function* () {
@@ -271,20 +271,20 @@ describe("tailscale", () => {
       assert.equal(error.argumentCount, 2);
       assert.equal(error.exitCode, 7);
       assert.equal(error.stdoutLength, 0);
-      assert.equal(error.stderrLength, 43);
+      assert.equal(error.stderrLength, 35);
       assert.notProperty(error, "command");
       assert.notProperty(error, "stderr");
-      assert.notInclude(error.message, "tskey-auth-secret-token-value");
+      assert.notInclude(error.message, "mock-auth-token-value");
       assert.equal(error.message, "tailscale status exited with code 7.");
       assert.equal(error.stderrDiagnostic, "not-logged-in");
-      assertCarriesNoSecret(error, "tskey-auth-secret-token-value");
+      assertCarriesNoSecret(error, "mock-auth-token-value");
     });
   });
 
   it.effect("classifies unrecognized stderr without quoting it", () => {
     const layer = mockSpawnerLayer(() => ({
       code: 3,
-      stderr: "something novel went wrong for node fluffy-badger tskey-auth-secret-token-value",
+      stderr: "something novel went wrong for node fluffy-badger mock-auth-token-value",
     }));
 
     return Effect.gen(function* () {
@@ -294,7 +294,7 @@ describe("tailscale", () => {
       // Unmatched stderr degrades to "unknown" rather than passing text
       // through — that fallback is what keeps novel output from leaking.
       assert.equal(error.stderrDiagnostic, "unknown");
-      assertCarriesNoSecret(error, "tskey-auth-secret-token-value");
+      assertCarriesNoSecret(error, "mock-auth-token-value");
       assertCarriesNoSecret(error, "fluffy-badger");
     });
   });
@@ -334,7 +334,7 @@ describe("tailscale", () => {
   it.effect("retains tailscale serve exit diagnostics", () => {
     const layer = mockSpawnerLayer(() => ({
       code: 1,
-      stderr: "serve permission denied tskey-auth-secret-token-value",
+      stderr: "serve permission denied mock-auth-token-value",
     }));
 
     return Effect.gen(function* () {
@@ -348,14 +348,14 @@ describe("tailscale", () => {
       assert.equal(error.subcommand, "serve");
       assert.equal(error.argumentCount, 4);
       assert.equal(error.exitCode, 1);
-      assert.equal(error.stderrLength, 53);
+      assert.equal(error.stderrLength, 45);
       assert.notProperty(error, "command");
       assert.notProperty(error, "stderr");
-      assert.notInclude(error.message, "tskey-auth-secret-token-value");
+      assert.notInclude(error.message, "mock-auth-token-value");
       // The diagnostic classifies the failure without quoting stderr, so the
       // key cannot reach a log through it either.
       assert.equal(error.stderrDiagnostic, "permission-denied");
-      assertCarriesNoSecret(error, "tskey-auth-secret-token-value");
+      assertCarriesNoSecret(error, "mock-auth-token-value");
     });
   });
 
